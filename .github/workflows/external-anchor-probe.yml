@@ -1,0 +1,108 @@
+name: external-anchor-probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rfc3161-external-anchor-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Prove hosted runner execution
+        run: |
+          set -euo pipefail
+          echo "runner_id=${{ runner.id }}"
+          echo "runner_name=${{ runner.name }}"
+          echo "runner_os=${{ runner.os }}"
+          echo "runner_arch=${{ runner.arch }}"
+          uname -a
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Nova Python dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Verify RFC3161 external anchor against public TSA
+        env:
+          TSA_URL: https://tsr.open-tsa.eu
+          TSA_CA_URL: https://open-tsa.eu/certs/ca.crt
+          TSA_CHAIN_URL: https://open-tsa.eu/certs/fullchain.pem
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
+            --user-agent 'Nova-external-anchor-probe/1.0' \
+            "$TSA_CA_URL" --output evidence/ca.crt
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
+            --user-agent 'Nova-external-anchor-probe/1.0' \
+            "$TSA_CHAIN_URL" --output evidence/fullchain.pem
+          grep -q '^-----BEGIN CERTIFICATE-----$' evidence/ca.crt
+          grep -q '^-----BEGIN CERTIFICATE-----$' evidence/fullchain.pem
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          from nova.audit_tsa import Rfc3161TimestampAnchorWriter, Rfc3161TsaConfig, verify_rfc3161_evidence, Rfc3161Error, _unb64
+
+          digest = hashlib.sha256(b"nova-external-anchor-probe-v1").hexdigest()
+          ca = Path("evidence/ca.crt").read_text(encoding="utf-8")
+          chain = Path("evidence/fullchain.pem").read_text(encoding="utf-8")
+          config = Rfc3161TsaConfig(
+              url=os.environ["TSA_URL"],
+              custody_domain="open-tsa.eu-public",
+              ca_pem=ca,
+              untrusted_chain_pem=chain,
+              timeout_seconds=20,
+          )
+          evidence = Rfc3161TimestampAnchorWriter(config).publish_digest(digest)
+          verify_rfc3161_evidence(evidence, expected_digest=digest)
+
+          response = bytearray(_unb64(evidence.response_der_b64))
+          response[-1] ^= 1
+          tampered = type(evidence)(
+              anchor=evidence.anchor,
+              request_der_b64=evidence.request_der_b64,
+              response_der_b64=base64.b64encode(bytes(response)).decode("ascii"),
+              ca_pem=evidence.ca_pem,
+              untrusted_chain_pem=evidence.untrusted_chain_pem,
+          )
+          try:
+              verify_rfc3161_evidence(tampered, expected_digest=digest)
+          except Rfc3161Error:
+              pass
+          else:
+              raise SystemExit("tampered RFC3161 evidence was incorrectly accepted")
+
+          evidence_dir = Path("evidence")
+          evidence_dir.joinpath("request.tsq").write_bytes(_unb64(evidence.request_der_b64))
+          evidence_dir.joinpath("response.tsr").write_bytes(_unb64(evidence.response_der_b64))
+          evidence_dir.joinpath("anchor.json").write_text(json.dumps({
+              "anchor_id": evidence.anchor.anchor_id,
+              "checkpoint_digest": evidence.anchor.checkpoint_digest,
+              "anchored_at": evidence.anchor.anchored_at,
+              "custody_domain": evidence.anchor.custody_domain,
+              "probe": "nova-external-anchor-probe-v1",
+              "tamper_test": "rejected",
+          }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload external anchor evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-rfc3161-external-anchor-${{ github.run_id }}
+          path: evidence/
+          retention-days: 90

@@ -1,0 +1,37 @@
+name: Nova runner bootstrap
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  runner-bootstrap:
+    name: Verify GitHub-hosted runner allocation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify runner identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "runner_name=${RUNNER_NAME:-unset}"
+          echo "run_id=${GITHUB_RUN_ID:-unset}"
+          echo "job_id=${GITHUB_JOB:-unset}"
+          echo "runner_environment=${RUNNER_ENVIRONMENT:-unset}"
+          test -n "${RUNNER_NAME:-}"
+          test -n "${RUNNER_ENVIRONMENT:-}"
+      - name: Verify shell execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Nova runner bootstrap executed successfully"
+          uname -a
+          python --version || true
+      - name: Verify repository checkout is not required for runner proof
+        shell: bash
+        run: echo "Runner allocation and command execution are proven"

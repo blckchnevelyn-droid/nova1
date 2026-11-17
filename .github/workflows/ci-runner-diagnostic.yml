@@ -1,0 +1,26 @@
+name: Nova CI runner diagnostic
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runner-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Prove runner execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Nova CI runner diagnostic started"
+          python --version || true
+          uname -a
+          echo "runner=${RUNNER_NAME:-unset}"
+          echo "environment=${RUNNER_ENVIRONMENT:-unset}"
+          test -n "${RUNNER_NAME:-}"
+          echo "Nova CI runner diagnostic completed"
