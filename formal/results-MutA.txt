@@ -1,0 +1,56 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 96 and seed 5755182952394329183 with 1 worker on 1 cores with 966MB heap and 64MB offheap memory [pid: 2026] (Linux 6.18.44-fc-v553 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /tmp/tmp.Tldq4MhGaq/FileWritePilot.tla
+Parsing file /tmp/Naturals.tla
+Parsing file /tmp/TLC.tla
+Parsing file /tmp/Sequences.tla
+Parsing file /tmp/FiniteSets.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module FileWritePilot
+Starting... (2026-11-17 02:00:24)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-17 02:00:24.
+Error: Invariant SucceededOnlyIfOwnedOrRecovered is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ owner = 0
+/\ st = <<"UNUSED", "UNUSED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "N"
+/\ n = 0
+
+State 2: <Create line 29, col 5 to line 33, col 43 of module FileWritePilot>
+/\ owner = 0
+/\ st = <<"NOT_EXECUTED", "UNUSED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "N"
+/\ n = 1
+
+State 3: <Claim line 36, col 5 to line 39, col 46 of module FileWritePilot>
+/\ owner = 0
+/\ st = <<"CLAIMED", "UNUSED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "N"
+/\ n = 1
+
+State 4: <Adversary line 72, col 5 to line 74, col 42 of module FileWritePilot>
+/\ owner = 0
+/\ st = <<"CLAIMED", "UNUSED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "E"
+/\ n = 1
+
+State 5: <Finish line 52, col 5 to line 62, col 46 of module FileWritePilot>
+/\ owner = 0
+/\ st = <<"SUCCEEDED", "UNUSED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "E"
+/\ n = 1
+
+26 states generated, 21 distinct states found, 9 states left on queue.
+The depth of the complete state graph search is 5.
+The average outdegree of the complete state graph is 2 (minimum is 0, the maximum 5 and the 95th percentile is 5).
+Finished in 00s at (2026-11-17 02:00:24)

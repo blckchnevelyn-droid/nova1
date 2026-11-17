@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Machine-readable milestone contracts for Nova verification and advancement.",
+  "status_values": [
+    "PLANNED",
+    "IN_PROGRESS",
+    "IMPLEMENTED",
+    "TESTED",
+    "VERIFIED",
+    "CERTIFIED",
+    "LOCKED"
+  ],
+  "gates": [
+    {
+      "id": "P1.1",
+      "name": "Trust Foundation Certification",
+      "status": "IN_PROGRESS",
+      "objective": "Independently establish that Nova's durable authority, governance, execution, recovery, provenance, audit, and completion boundaries satisfy the established trust contract.",
+      "source_contracts": [
+        "docs/governance/GOVERNANCE.md",
+        "docs/governance/AUTHORIZATION_BINDING.md",
+        "docs/governance/RECOVERY-AUTHORITY.md",
+        "docs/testing/VERIFICATION.md"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "P1.1-AC01",
+          "requirement": "Durable authority contract is explicitly enforced by the authoritative persistence boundary.",
+          "evidence": ["implementation review", "targeted tests", "hosted CI result"]
+        },
+        {
+          "id": "P1.1-AC02",
+          "requirement": "Authority persistence failures preserve failure-closed behavior and do not create unauthorized completion.",
+          "evidence": ["fault-injection test", "hosted CI result"]
+        },
+        {
+          "id": "P1.1-AC03",
+          "requirement": "Recovery cannot obtain or extend authority outside the governed authority boundary.",
+          "evidence": ["recovery adversarial tests", "hosted CI result"]
+        },
+        {
+          "id": "P1.1-AC04",
+          "requirement": "Execution-attempt identity and idempotency remain durable across retries and concurrency boundaries.",
+          "evidence": ["execution durability tests", "concurrency tests", "hosted CI result"]
+        },
+        {
+          "id": "P1.1-AC05",
+          "requirement": "Audit and evidence provenance remain attributable and integrity-protected for consequential actions.",
+          "evidence": ["audit tests", "provenance tests", "hosted CI result"]
+        },
+        {
+          "id": "P1.1-AC06",
+          "requirement": "COMPLETED is reachable only through the required authorized execution and verification evidence path.",
+          "evidence": ["completion-boundary tests", "verification specification review", "hosted CI result"]
+        },
+        {
+          "id": "P1.1-AC07",
+          "requirement": "Certification evidence is bound to the exact repository commit that produced the tested result.",
+          "evidence": ["exact-head workflow", "workflow logs", "commit SHA"]
+        }
+      ],
+      "lock_conditions": [
+        "All acceptance criteria have sufficient objective evidence.",
+        "Required hosted CI execution is successful on the exact certified commit.",
+        "No unresolved mandatory authority, governance, security, integrity, or verification finding remains.",
+        "An independent acceptance review records the evidence mapping and decision."
+      ]
+    },
+    {
+      "id": "GATE4",
+      "name": "Recovery Integrity",
+      "status": "IN_PROGRESS",
+      "objective": "Establish deterministic, authorized, observable, and testable recovery behavior for failure and restart conditions.",
+      "source_contracts": [
+        "docs/testing/GATE4_RECOVERY_CHECKLIST.md",
+        "docs/testing/VERIFICATION.md"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "GATE4-AC01",
+          "requirement": "Recovery preserves authorization boundaries during failure and restart.",
+          "evidence": ["recovery tests", "adversarial tests", "hosted CI result"]
+        },
+        {
+          "id": "GATE4-AC02",
+          "requirement": "Recovery is idempotent and resistant to stale-writer or duplicate-attempt conditions.",
+          "evidence": ["recovery restart tests", "stale-writer tests", "hosted CI result"]
+        },
+        {
+          "id": "GATE4-AC03",
+          "requirement": "Recovery outcomes are observable and connected to the verification and audit trail.",
+          "evidence": ["recovery evidence tests", "audit/provenance tests"]
+        }
+      ],
+      "lock_conditions": [
+        "All recovery acceptance criteria have objective evidence.",
+        "Failure-injection and restart scenarios pass on the certified revision.",
+        "Recovery behavior remains consistent with governance and verification contracts."
+      ]
+    }
+  ]
+}

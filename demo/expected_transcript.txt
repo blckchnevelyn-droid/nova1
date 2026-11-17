@@ -1,0 +1,22 @@
+Nova file-write pilot demo
+Assumptions: POSIX host, trusted kernel and runtime, integrity key held outside the database.
+Not shown: semantic correctness of the content, approver intent, or host-compromise resistance.
+Content sha256: 3c565377b6ffcdd1dd6aea98ec0b64aee196a28bf52278f3172e996d8ae269df
+
+Scenario 1: unauthorized write is denied before any file effect
+  result: denied (authorization scope binding mismatch)
+  target absent: True
+
+Scenario 2: authorized write killed after publish, recovered in a separate process
+  worker exit at crash point: True
+  target present before recovery: True
+  recovery process completed: True
+  attempts recorded: 1, state: SUCCEEDED, fence: 1
+  target bytes exact: True
+  evidence records verified: 1
+  independent completion: task COMPLETED, verification VERIFIED
+
+Scenario 3: evidence altered without the integrity key is detected
+  verification: refused (attempt evidence failed integrity check: execution evidence integrity check failed)
+
+Demo complete. Completion is independently verified; semantic correctness of the content is not.

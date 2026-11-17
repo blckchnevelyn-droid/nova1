@@ -1,0 +1,42 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 82 and seed -3456627593445180201 with 1 worker on 1 cores with 966MB heap and 64MB offheap memory [pid: 2052] (Linux 6.18.44-fc-v553 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /tmp/tmp.Tldq4MhGaq/FileWritePilot.tla
+Parsing file /tmp/Naturals.tla
+Parsing file /tmp/TLC.tla
+Parsing file /tmp/Sequences.tla
+Parsing file /tmp/FiniteSets.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module FileWritePilot
+Starting... (2026-11-17 02:00:25)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-17 02:00:26.
+Error: Invariant AtMostOneLive is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ owner = 0
+/\ st = <<"UNUSED", "UNUSED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "N"
+/\ n = 0
+
+State 2: <Create line 29, col 5 to line 33, col 43 of module FileWritePilot>
+/\ owner = 0
+/\ st = <<"NOT_EXECUTED", "UNUSED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "N"
+/\ n = 1
+
+State 3: <Create line 29, col 5 to line 33, col 43 of module FileWritePilot>
+/\ owner = 0
+/\ st = <<"NOT_EXECUTED", "NOT_EXECUTED", "UNUSED">>
+/\ crashed = <<FALSE, FALSE, FALSE>>
+/\ target = "N"
+/\ n = 2
+
+5 states generated, 5 distinct states found, 2 states left on queue.
+The depth of the complete state graph search is 3.
+The average outdegree of the complete state graph is 3 (minimum is 3, the maximum 3 and the 95th percentile is 3).
+Finished in 00s at (2026-11-17 02:00:26)
