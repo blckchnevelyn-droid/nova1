@@ -1,3 +1,5 @@
+> **Status: aspirational, not completed.** This document describes a certification process that was planned but never finished. It is not evidence that Nova is certified. The project is a prototype (see README.md).
+
 # Gate 4 — Recovery, Fault Injection, and Failure Semantics
 
 ## Exit criteria

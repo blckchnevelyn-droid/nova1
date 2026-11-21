@@ -1,4 +1,5 @@
 {
+  "_status": "Status: aspirational, not completed. This document describes a certification process that was planned but never finished. It is not evidence that Nova is certified. The project is a prototype (see README.md).",
   "schema_version": "1.0",
   "purpose": "Machine-readable milestone contracts for Nova verification and advancement.",
   "status_values": [
