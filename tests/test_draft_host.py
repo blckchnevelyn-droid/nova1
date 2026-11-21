@@ -187,7 +187,7 @@ def test_model_adapter_builds_the_expected_request_and_parses_the_reply():
     assert "say hello" in seen["body"]["messages"][0]["content"]
 
 
-def test_model_reply_that_is_not_json_is_refused():
+def test_model_reply_that_is_not_json_is_refused_cleanly():
     class FakeResponse:
         def read(self):
             return json.dumps({"content": [{"type": "text", "text": "not json"}]}).encode("utf-8")
@@ -199,8 +199,30 @@ def test_model_reply_that_is_not_json_is_refused():
             return False
 
     draft = anthropic_drafter("k", opener=lambda req, timeout: FakeResponse())
-    with pytest.raises(json.JSONDecodeError):
+    with pytest.raises(ValidationError, match="no draft object"):
         draft("anything")
+
+
+@pytest.mark.parametrize("reply", [
+    '{"path": "drafts/a.md", "content": "# A\\n"}',
+    '```json\n{"path": "drafts/a.md", "content": "# A\\n"}\n```',
+    'Sure! Here you go: {"path": "drafts/a.md", "content": "# A\\n"} Hope that helps.',
+])
+def test_parser_accepts_fenced_and_prefaced_replies(reply):
+    from host.draft_host import _parse_draft_reply
+    assert _parse_draft_reply(reply) == ("drafts/a.md", "# A\n")
+
+
+@pytest.mark.parametrize("reply,message", [
+    ("no braces here", "no draft object"),
+    ('{"path": "drafts/a.md", "content": }', "not valid draft JSON"),
+    ('{"path": 3, "content": "x"}', "lacks string"),
+    ('{"content": "x"}', "lacks string"),
+])
+def test_parser_refuses_unusable_replies_cleanly(reply, message):
+    from host.draft_host import _parse_draft_reply
+    with pytest.raises(ValidationError, match=message):
+        _parse_draft_reply(reply)
 
 
 def test_approver_key_outside_state_lets_only_the_approver_sign(tmp_path, monkeypatch):
@@ -239,3 +261,32 @@ def test_revoked_approver_key_cannot_approve(state):
     item = h.propose(brief="after revocation", drafter=stub_drafter)
     with pytest.raises(ValidationError, match="not registered"):
         h.approve(item["id"], confirm=True)
+
+
+def test_openai_compatible_drafter_builds_request_and_parses_reply():
+    from host.draft_host import openai_compatible_drafter
+    seen = {}
+
+    class FakeResponse:
+        def read(self):
+            reply = {"choices": [{"message": {"content": json.dumps({"path": "drafts/g.md", "content": "# G\n"})}}]}
+            return json.dumps(reply).encode("utf-8")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def fake_opener(request, timeout):
+        seen["url"] = request.full_url
+        seen["headers"] = {k.lower(): v for k, v in request.header_items()}
+        seen["body"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    draft = openai_compatible_drafter("https://api.groq.com/openai/v1", "gsk-test", "m1", opener=fake_opener)
+    assert draft("hello") == ("drafts/g.md", "# G\n")
+    assert seen["url"] == "https://api.groq.com/openai/v1/chat/completions"
+    assert seen["headers"]["authorization"] == "Bearer gsk-test"
+    assert seen["body"]["model"] == "m1"
+    assert "hello" in seen["body"]["messages"][0]["content"]
