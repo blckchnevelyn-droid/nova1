@@ -125,6 +125,25 @@ _MODEL_PROMPT = (
 )
 
 
+def _parse_draft_reply(text: str):
+    """Extract {"path", "content"} from a model reply.
+
+    Models often wrap JSON in a code fence or add a sentence before it. Take the outermost
+    braces, then validate the shape. Anything else is a clean refusal, not a crash.
+    """
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end <= start:
+        raise ValidationError("model reply contained no draft object")
+    try:
+        parsed = json.loads(text[start:end + 1])
+    except json.JSONDecodeError as exc:
+        raise ValidationError("model reply was not valid draft JSON") from exc
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("path"), str) \
+            or not isinstance(parsed.get("content"), str):
+        raise ValidationError("model reply lacks string 'path' and 'content'")
+    return parsed["path"], parsed["content"]
+
+
 def anthropic_drafter(api_key: str, model: str = "claude-haiku-5-5", *, opener=urllib.request.urlopen):
     """Drafter that calls the Messages API. Built and unit-tested against a mock; not run live here."""
     def draft(brief: str):
@@ -137,8 +156,28 @@ def anthropic_drafter(api_key: str, model: str = "claude-haiku-5-5", *, opener=u
         with opener(request, timeout=60) as response:
             payload = json.loads(response.read().decode("utf-8"))
         text = "".join(block.get("text", "") for block in payload.get("content", []) if block.get("type") == "text")
-        parsed = json.loads(text)
-        return parsed["path"], parsed["content"]
+        return _parse_draft_reply(text)
+    return draft
+
+
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile"  # check the Groq console's model list; names change
+
+
+def openai_compatible_drafter(base_url: str, api_key: str, model: str, *, opener=urllib.request.urlopen):
+    """Drafter for any OpenAI-compatible chat endpoint (Groq, OpenRouter, and others).
+
+    Built and tested against a mock. Not run against the live service in this environment.
+    """
+    def draft(brief: str):
+        body = json.dumps({"model": model, "max_tokens": 1500,
+                           "messages": [{"role": "user", "content": _MODEL_PROMPT + brief}]}).encode("utf-8")
+        request = urllib.request.Request(
+            base_url.rstrip("/") + "/chat/completions", data=body, method="POST",
+            headers={"content-type": "application/json", "authorization": f"Bearer {api_key}"})
+        with opener(request, timeout=60) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        return _parse_draft_reply(payload["choices"][0]["message"]["content"])
     return draft
 
 
@@ -383,6 +422,9 @@ def main(argv=None) -> int:
     p = sub.add_parser("propose")
     p.add_argument("brief")
     p.add_argument("--stub", action="store_true", help="use the offline stub drafter instead of a model")
+    p.add_argument("--provider", choices=("groq", "anthropic"), default="groq",
+                   help="model provider when not using --stub (default: groq, which has a free tier)")
+    p.add_argument("--model", default=None, help="model name for the provider")
     for name in ("show", "approve", "reject"):
         q = sub.add_parser(name)
         q.add_argument("item_id")
@@ -410,11 +452,16 @@ def main(argv=None) -> int:
         if args.cmd == "propose":
             if args.stub:
                 drafter = stub_drafter
+            elif args.provider == "groq":
+                key = os.environ.get("GROQ_API_KEY")
+                if not key:
+                    raise ValidationError("set GROQ_API_KEY or pass --stub")
+                drafter = openai_compatible_drafter(GROQ_BASE_URL, key, args.model or GROQ_DEFAULT_MODEL)
             else:
                 key = os.environ.get("ANTHROPIC_API_KEY")
                 if not key:
                     raise ValidationError("set ANTHROPIC_API_KEY or pass --stub")
-                drafter = anthropic_drafter(key)
+                drafter = anthropic_drafter(key, args.model or "claude-haiku-5-5")
             _print(host.propose(brief=args.brief, drafter=drafter))
         elif args.cmd == "show":
             _print(host.show(args.item_id))
