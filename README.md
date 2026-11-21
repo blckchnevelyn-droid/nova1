@@ -1,6 +1,6 @@
 # Nova
 
-Nova is a durable execution-governance framework for agentic systems.
+Nova is a prototype. Writes approved drafts into one sandbox folder. Not certified, and not tested against real failures.
 
 It provides a concrete model for how an action can be authorized, bound to an identity, recorded in durable state, recovered after failure, and audited after completion. The project is built around a simple principle: if an agent or tool is going to act with authority, the system must preserve a verifiable execution record.
 
